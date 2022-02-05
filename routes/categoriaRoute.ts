@@ -34,5 +34,11 @@ categoriaRouter.delete('/eliminarCategoriaID', [verificaToken], (req: Request, r
     eliminarCategoriaID.eliminarCategoriaID(req, resp);
 });
 
+categoriaRouter.get('/obtenerCategoriaCriterio', [verificaToken], (req: Request, resp: Response) => {
+
+    const obtenerCategoriaCriterio = new CategoriaClass();
+    obtenerCategoriaCriterio.obtenerCategoriaCriterio(req, resp);
+});
+
 
 export default categoriaRouter

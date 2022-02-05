@@ -24,4 +24,8 @@ categoriaRouter.delete('/eliminarCategoriaID', [auth_1.verificaToken], (req, res
     const eliminarCategoriaID = new categoriaClass_1.CategoriaClass();
     eliminarCategoriaID.eliminarCategoriaID(req, resp);
 });
+categoriaRouter.get('/obtenerCategoriaCriterio', [auth_1.verificaToken], (req, resp) => {
+    const obtenerCategoriaCriterio = new categoriaClass_1.CategoriaClass();
+    obtenerCategoriaCriterio.obtenerCategoriaCriterio(req, resp);
+});
 exports.default = categoriaRouter;
