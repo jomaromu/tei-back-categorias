@@ -1,5 +1,7 @@
 import { Response } from "express";
 import { CallbackError } from "mongoose";
+const mongoose = require("mongoose");
+import Server from "./server";
 
 // Interfaces
 import { CategoriaModelInterface } from "../interfaces/categoria";
@@ -11,12 +13,14 @@ export class CategoriaClass {
   constructor() {}
 
   crearCategoria(req: any, resp: Response): void {
-    const idCreador = req.usuario._id;
+    const idCreador = new mongoose.Types.ObjectId(req.usuario._id);
     const nombre = req.body.nombre;
+    const estado: boolean = req.body.estado;
 
     const nuevaCategoria = new categoriaModel({
-      idCreador: idCreador,
-      nombre: nombre,
+      idCreador,
+      nombre,
+      estado,
     });
 
     nuevaCategoria.save(
@@ -28,6 +32,10 @@ export class CategoriaClass {
             err,
           });
         } else {
+          const server = Server.instance;
+          server.io.emit("cargar-categorias", {
+            ok: true,
+          });
           return resp.json({
             ok: true,
             mensaje: "Categoría creada",
@@ -39,18 +47,13 @@ export class CategoriaClass {
   }
 
   editarCategoriaID(req: any, resp: Response): any {
-    const id = req.get("id");
+    const id = new mongoose.Types.ObjectId(req.body.id);
     const nombre: string = req.body.nombre;
-
-    // const estadoHeader: string = req.get('estado');
-    const estadoBody = req.body.estado;
-    // const estado: boolean = castEstado(estadoBody);
-
-    // console.log(estadoBody)
+    const estado: boolean = req.body.estado;
 
     const query = {
-      nombre: nombre,
-      estado: estadoBody,
+      nombre,
+      estado,
     };
 
     categoriaModel.findById(
@@ -75,10 +78,6 @@ export class CategoriaClass {
           query.nombre = categoriaDB.nombre;
         }
 
-        if (!query.estado) {
-          query.estado = categoriaDB.estado;
-        }
-
         categoriaModel.findByIdAndUpdate(
           id,
           query,
@@ -90,20 +89,17 @@ export class CategoriaClass {
                 mensaje: `Error interno`,
                 err,
               });
-            }
-
-            if (!categoriaDB) {
+            } else {
+              const server = Server.instance;
+              server.io.emit("cargar-categorias", {
+                ok: true,
+              });
               return resp.json({
-                ok: false,
-                mensaje: `No se encontró una categoría con ese ID`,
+                ok: true,
+                mensaje: "Categoría actualizada",
+                categoriaDB,
               });
             }
-
-            return resp.json({
-              ok: true,
-              mensaje: "Categoría actualizada",
-              categoriaDB,
-            });
           }
         );
       }
@@ -111,9 +107,24 @@ export class CategoriaClass {
   }
 
   obtenerTodasCategorias(req: any, resp: Response): void {
-    const estado: boolean = req.get("estado");
-    // const estado: boolean = castEstado(estadoHeader);
-
+    categoriaModel
+      .find({})
+      .populate("idCreador")
+      .exec((err: any, categoriasDB: any) => {
+        if (err) {
+          return resp.json({
+            ok: false,
+            mensaje: `Error interno`,
+            err,
+          });
+        } else {
+          return resp.json({
+            ok: true,
+            categoriasDB,
+          });
+        }
+      });
+    return;
     categoriaModel.find(
       {},
       (err: CallbackError, categoriasDB: Array<CategoriaModelInterface>) => {
@@ -140,37 +151,8 @@ export class CategoriaClass {
     );
   }
 
-  obtenerCategoriaID(req: any, resp: Response): void {
-    const id = req.get("id");
-
-    categoriaModel.findById(
-      id,
-      (err: CallbackError, categoriaDB: CategoriaModelInterface) => {
-        if (err) {
-          return resp.json({
-            ok: false,
-            mensaje: `Error interno`,
-            err,
-          });
-        }
-
-        if (!categoriaDB) {
-          return resp.json({
-            ok: false,
-            mensaje: `No se encontró una categoría con ese ID`,
-          });
-        }
-
-        return resp.json({
-          ok: true,
-          categoriaDB,
-        });
-      }
-    );
-  }
-
   eliminarCategoriaID(req: any, resp: Response): void {
-    const id = req.get("id");
+    const id = new mongoose.Types.ObjectId(req.get("id"));
 
     categoriaModel.findByIdAndDelete(id, {}, (err: any, categoriaDB: any) => {
       if (err) {
@@ -179,51 +161,17 @@ export class CategoriaClass {
           mensaje: `Error interno`,
           err,
         });
-      }
-
-      if (!categoriaDB) {
-        return resp.json({
-          ok: false,
-          mensaje: `No se encontró una categoría con ese ID`,
+      } else {
+        const server = Server.instance;
+        server.io.emit("cargar-categorias", {
+          ok: true,
         });
-      }
-
-      return resp.json({
-        ok: true,
-        mensaje: "Categoría eliminada",
-        categoriaDB,
-      });
-    });
-  }
-
-  obtenerCategoriaCriterio(req: any, resp: Response): void {
-
-    const criterio = req.get("criterio");
-    const regExpCrit = new RegExp(criterio, "i");
-
-    categoriaModel.find(
-      { nombre: regExpCrit },
-      (err: CallbackError, categoriasDB: Array<CategoriaModelInterface>) => {
-        if (err) {
-          return resp.json({
-            ok: false,
-            mensaje: `Error interno`,
-            err,
-          });
-        }
-
-        if (categoriasDB.length === 0) {
-          return resp.json({
-            ok: false,
-            mensaje: `No se encontraron categorías`,
-          });
-        }
-
         return resp.json({
           ok: true,
-          categoriasDB,
+          mensaje: "Categoría eliminada",
+          categoriaDB,
         });
       }
-    );
+    });
   }
 }
