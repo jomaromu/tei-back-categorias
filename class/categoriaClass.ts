@@ -14,11 +14,13 @@ export class CategoriaClass {
 
   crearCategoria(req: any, resp: Response): void {
     const idCreador = new mongoose.Types.ObjectId(req.usuario._id);
+    const foranea = new mongoose.Types.ObjectId(req.body.foranea);
     const nombre = req.body.nombre;
     const estado: boolean = req.body.estado;
 
     const nuevaCategoria = new categoriaModel({
       idCreador,
+      foranea,
       nombre,
       estado,
     });
@@ -47,7 +49,8 @@ export class CategoriaClass {
   }
 
   editarCategoriaID(req: any, resp: Response): any {
-    const id = new mongoose.Types.ObjectId(req.body.id);
+    const _id = new mongoose.Types.ObjectId(req.body.id);
+    const foranea = new mongoose.Types.ObjectId(req.body.foranea);
     const nombre: string = req.body.nombre;
     const estado: boolean = req.body.estado;
 
@@ -56,8 +59,8 @@ export class CategoriaClass {
       estado,
     };
 
-    categoriaModel.findById(
-      id,
+    categoriaModel.findOne(
+      { _id, foranea },
       (err: CallbackError, categoriaDB: CategoriaModelInterface) => {
         if (err) {
           return resp.json({
@@ -78,8 +81,8 @@ export class CategoriaClass {
           query.nombre = categoriaDB.nombre;
         }
 
-        categoriaModel.findByIdAndUpdate(
-          id,
+        categoriaModel.findOneAndUpdate(
+          { _id, foranea },
           query,
           { new: true },
           (err: CallbackError, categoriaDB: any) => {
@@ -107,8 +110,9 @@ export class CategoriaClass {
   }
 
   obtenerTodasCategorias(req: any, resp: Response): void {
+    const foranea = new mongoose.Types.ObjectId(req.get("foranea"));
     categoriaModel
-      .find({})
+      .find({ foranea })
       .populate("idCreador")
       .exec((err: any, categoriasDB: any) => {
         if (err) {
@@ -124,54 +128,34 @@ export class CategoriaClass {
           });
         }
       });
-    return;
-    categoriaModel.find(
+  }
+
+  eliminarCategoriaID(req: any, resp: Response): void {
+    const _id = new mongoose.Types.ObjectId(req.get("id"));
+    const foranea = new mongoose.Types.ObjectId(req.get("foranea"));
+
+    categoriaModel.findOneAndDelete(
+      { _id, foranea },
       {},
-      (err: CallbackError, categoriasDB: Array<CategoriaModelInterface>) => {
+      (err: any, categoriaDB: any) => {
         if (err) {
           return resp.json({
             ok: false,
             mensaje: `Error interno`,
             err,
           });
-        }
-
-        if (categoriasDB.length === 0) {
+        } else {
+          const server = Server.instance;
+          server.io.emit("cargar-categorias", {
+            ok: true,
+          });
           return resp.json({
-            ok: false,
-            mensaje: `No se encontraron categorías`,
+            ok: true,
+            mensaje: "Categoría eliminada",
+            categoriaDB,
           });
         }
-
-        return resp.json({
-          ok: true,
-          categoriasDB,
-        });
       }
     );
-  }
-
-  eliminarCategoriaID(req: any, resp: Response): void {
-    const id = new mongoose.Types.ObjectId(req.get("id"));
-
-    categoriaModel.findByIdAndDelete(id, {}, (err: any, categoriaDB: any) => {
-      if (err) {
-        return resp.json({
-          ok: false,
-          mensaje: `Error interno`,
-          err,
-        });
-      } else {
-        const server = Server.instance;
-        server.io.emit("cargar-categorias", {
-          ok: true,
-        });
-        return resp.json({
-          ok: true,
-          mensaje: "Categoría eliminada",
-          categoriaDB,
-        });
-      }
-    });
   }
 }

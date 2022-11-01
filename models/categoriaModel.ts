@@ -12,9 +12,9 @@ const categoriaSchema = new Schema({
   nombre: {
     type: String,
     required: [true, "Debe ingresar un nombre"],
-    unique: true,
   },
   estado: { type: Boolean, default: true },
+  foranea: { type: Schema.Types.ObjectId, ref: "userWorker" },
 });
 
 // validacion para único elemento

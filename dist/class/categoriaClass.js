@@ -12,10 +12,12 @@ class CategoriaClass {
     constructor() { }
     crearCategoria(req, resp) {
         const idCreador = new mongoose.Types.ObjectId(req.usuario._id);
+        const foranea = new mongoose.Types.ObjectId(req.body.foranea);
         const nombre = req.body.nombre;
         const estado = req.body.estado;
         const nuevaCategoria = new categoriaModel_1.default({
             idCreador,
+            foranea,
             nombre,
             estado,
         });
@@ -41,14 +43,15 @@ class CategoriaClass {
         });
     }
     editarCategoriaID(req, resp) {
-        const id = new mongoose.Types.ObjectId(req.body.id);
+        const _id = new mongoose.Types.ObjectId(req.body.id);
+        const foranea = new mongoose.Types.ObjectId(req.body.foranea);
         const nombre = req.body.nombre;
         const estado = req.body.estado;
         const query = {
             nombre,
             estado,
         };
-        categoriaModel_1.default.findById(id, (err, categoriaDB) => {
+        categoriaModel_1.default.findOne({ _id, foranea }, (err, categoriaDB) => {
             if (err) {
                 return resp.json({
                     ok: false,
@@ -65,7 +68,7 @@ class CategoriaClass {
             if (!query.nombre) {
                 query.nombre = categoriaDB.nombre;
             }
-            categoriaModel_1.default.findByIdAndUpdate(id, query, { new: true }, (err, categoriaDB) => {
+            categoriaModel_1.default.findOneAndUpdate({ _id, foranea }, query, { new: true }, (err, categoriaDB) => {
                 if (err) {
                     return resp.json({
                         ok: false,
@@ -88,8 +91,9 @@ class CategoriaClass {
         });
     }
     obtenerTodasCategorias(req, resp) {
+        const foranea = new mongoose.Types.ObjectId(req.get("foranea"));
         categoriaModel_1.default
-            .find({})
+            .find({ foranea })
             .populate("idCreador")
             .exec((err, categoriasDB) => {
             if (err) {
@@ -106,30 +110,11 @@ class CategoriaClass {
                 });
             }
         });
-        return;
-        categoriaModel_1.default.find({}, (err, categoriasDB) => {
-            if (err) {
-                return resp.json({
-                    ok: false,
-                    mensaje: `Error interno`,
-                    err,
-                });
-            }
-            if (categoriasDB.length === 0) {
-                return resp.json({
-                    ok: false,
-                    mensaje: `No se encontraron categorías`,
-                });
-            }
-            return resp.json({
-                ok: true,
-                categoriasDB,
-            });
-        });
     }
     eliminarCategoriaID(req, resp) {
-        const id = new mongoose.Types.ObjectId(req.get("id"));
-        categoriaModel_1.default.findByIdAndDelete(id, {}, (err, categoriaDB) => {
+        const _id = new mongoose.Types.ObjectId(req.get("id"));
+        const foranea = new mongoose.Types.ObjectId(req.get("foranea"));
+        categoriaModel_1.default.findOneAndDelete({ _id, foranea }, {}, (err, categoriaDB) => {
             if (err) {
                 return resp.json({
                     ok: false,
